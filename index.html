@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CitationSniper — Find real citations. Not just related ones.</title>
+<meta name="description" content="AI-powered citation finder that also catches fake references before your supervisor does. Search reputable academic databases in parallel, verify sources, and export in any style.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23123a86' stroke-width='7'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --bg:            #040918;
+  --bg-2:          #060d20;
+  --panel:         #080f27;
+  --panel-2:       #0a1330;
+  --card:          #070e24;
+  --line:          #14203f;
+  --line-soft:     #101a36;
+  --ink:           #eaf0ff;
+  --ink-2:         #b9c6e4;
+  --muted:         #8fa0c4;
+  --brand:         #2f7bff;
+  --brand-2:       #59a0ff;
+  --brand-3:       #86b9ff;
+  --brand-deep:    #123a86;
+  --green:         #35c26b;
+  --red:           #ef4d5a;
+  --amber:         #f0b429;
+  --violet:        #8b6cf6;
+  --radius:        14px;
+  --radius-lg:     20px;
+  --shadow:        0 24px 60px -20px rgba(0,0,0,.75);
+  --maxw:          1160px;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{
+  margin:0;
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4,p{margin:0}
+ul{margin:0;padding:0;list-style:none}
+button{font:inherit;color:inherit}
+
+/* starfield / glow backdrop */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  background:
+    radial-gradient(900px 520px at 78% 6%,  rgba(30,90,220,.30), transparent 62%),
+    radial-gradient(760px 480px at 8% 12%,  rgba(20,60,170,.22), transparent 62%),
+    radial-gradient(1100px 700px at 50% 96%,rgba(24,72,190,.16), transparent 65%),
+    linear-gradient(180deg,#040918 0%,#050b1d 45%,#040918 100%);
+}
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  opacity:.5;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, rgba(150,190,255,.65), transparent 50%),
+    radial-gradient(1.2px 1.2px at 87% 9%,  rgba(150,190,255,.55), transparent 50%),
+    radial-gradient(1.1px 1.1px at 63% 27%, rgba(150,190,255,.45), transparent 50%),
+    radial-gradient(1.3px 1.3px at 32% 41%, rgba(150,190,255,.40), transparent 50%),
+    radial-gradient(1.2px 1.2px at 94% 38%, rgba(150,190,255,.50), transparent 50%),
+    radial-gradient(1.1px 1.1px at 5% 62%,  rgba(150,190,255,.40), transparent 50%),
+    radial-gradient(1.3px 1.3px at 71% 71%, rgba(150,190,255,.35), transparent 50%),
+    radial-gradient(1.2px 1.2px at 44% 88%, rgba(150,190,255,.35), transparent 50%),
+    radial-gradient(1.1px 1.1px at 22% 77%, rgba(150,190,255,.30), transparent 50%);
+}
+
+.wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ============================================================
+   LOGO
+   ============================================================ */
+.logo{display:inline-flex;align-items:center;gap:10px}
+.logo .mark{flex:none}
+.logo .word{font-size:22px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.logo .word .b{color:var(--brand-2)}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+.nav{
+  position:sticky;top:0;z-index:60;
+  background:rgba(4,9,24,.72);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(20,32,63,.7);
+}
+.nav-inner{display:flex;align-items:center;gap:24px;height:72px}
+.nav-links{display:flex;align-items:center;gap:34px;margin:0 auto}
+.nav-links a{font-size:14.5px;font-weight:500;color:var(--ink-2);transition:color .18s}
+.nav-links a:hover{color:#fff}
+.nav-cta{margin-left:auto}
+@media (min-width:961px){.nav-cta{margin-left:0}}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:14px 22px;border-radius:11px;border:0;
+  font-size:15px;font-weight:700;letter-spacing:-.01em;
+  cursor:pointer;white-space:nowrap;
+  background:linear-gradient(180deg,#2f7bff,#1a5ce0);
+  color:#fff;
+  box-shadow:0 10px 26px -8px rgba(47,123,255,.75), inset 0 1px 0 rgba(255,255,255,.18);
+  transition:transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 16px 34px -10px rgba(47,123,255,.85), inset 0 1px 0 rgba(255,255,255,.22)}
+.btn:active{transform:translateY(0)}
+.btn--sm{padding:10px 18px;font-size:14px;border-radius:10px}
+.btn--lg{padding:17px 28px;font-size:16.5px;border-radius:12px}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{padding:64px 0 34px}
+.hero-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);
+  gap:56px;align-items:start;
+}
+.hero-copy,.hero-visual{min-width:0}
+.pill{
+  display:inline-flex;align-items:center;
+  padding:7px 15px;border-radius:999px;
+  background:rgba(28,64,140,.42);
+  border:1px solid rgba(70,120,220,.42);
+  font-size:11.5px;font-weight:700;letter-spacing:.12em;
+  color:var(--brand-3);text-transform:uppercase;
+}
+.hero h1{
+  margin-top:26px;
+  font-size:clamp(29px,4.15vw,52px);
+  line-height:1.08;
+  letter-spacing:-.035em;
+  font-weight:800;
+}
+.hero h1 em{font-style:normal;color:var(--brand-2)}
+.hero .lede{
+  margin-top:24px;max-width:34em;
+  font-size:18px;line-height:1.55;color:var(--ink-2);font-weight:500;
+}
+.hero .sub{
+  margin-top:18px;max-width:34em;
+  font-size:15.5px;line-height:1.68;color:var(--muted);
+}
+.hero-cta{display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-top:36px}
+
+.trust{
+  display:flex;flex-wrap:nowrap;gap:0;
+  margin-top:44px;
+}
+.trust-item{
+  display:flex;align-items:center;gap:10px;
+  padding:0 18px;
+  border-left:1px solid #16224a;
+}
+.trust-item:first-child{padding-left:0;border-left:0}
+.trust-item>svg{flex:none}
+.trust-item .t1{font-size:12px;font-weight:600;color:var(--ink-2);line-height:1.35;white-space:nowrap}
+.trust-item .t2{font-size:11.5px;color:var(--muted);line-height:1.35;white-space:nowrap}
+.stars{color:#f5b942;font-size:14px;letter-spacing:2px;line-height:1}
+
+/* ---------- browser mockup ---------- */
+.hero-visual{position:relative}
+.hero-visual::before{
+  content:"";position:absolute;inset:-14% -10% -6% -8%;
+  background:radial-gradient(closest-side,rgba(40,105,235,.30),transparent 72%);
+  filter:blur(12px);z-index:0;
+}
+.browser{
+  position:relative;z-index:1;
+  border-radius:12px;overflow:hidden;
+  background:#0b1430;
+  border:1px solid rgba(52,84,150,.55);
+  box-shadow:var(--shadow), 0 0 0 1px rgba(90,140,240,.10);
+}
+.browser-bar{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;background:#dfe4ee;border-bottom:1px solid #c3cad8;
+}
+.dots{display:flex;gap:6px;flex:none}
+.dots i{width:10px;height:10px;border-radius:50%;display:block}
+.dots i:nth-child(1){background:#ff5f57}
+.dots i:nth-child(2){background:#febc2e}
+.dots i:nth-child(3){background:#28c840}
+.tab{
+  display:flex;align-items:center;gap:7px;
+  background:#fff;border-radius:7px 7px 0 0;
+  padding:6px 10px;margin-bottom:-9px;
+  font-size:10.5px;color:#3a4356;font-weight:600;
+  max-width:230px;min-width:0;overflow:hidden;white-space:nowrap;
+}
+.tab .x{margin-left:6px;color:#98a1b2;font-size:12px}
+.tab .fav{width:12px;height:12px;border-radius:50%;background:var(--brand-deep);flex:none}
+.plus{color:#7b8496;font-size:14px;font-weight:400}
+.url{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;background:#eef1f6;border-bottom:1px solid #d3d9e4;
+}
+.url .navico{color:#7c8598;flex:none}
+.url .field{
+  flex:1;min-width:0;background:#fff;border-radius:999px;
+  padding:5px 12px;font-size:10.5px;color:#4b5568;
+  border:1px solid #dbe0ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.browser-body{display:grid;grid-template-columns:1fr 1fr;gap:0;background:#f4f6fa;padding:14px;position:relative}
+
+.doc{background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 3px rgba(20,35,80,.12)}
+.doc .kicker{font-size:8px;font-weight:800;letter-spacing:.1em;color:#7b8ba8;text-transform:uppercase}
+.doc h4{margin-top:7px;font-size:15px;line-height:1.25;color:#101c38;letter-spacing:-.02em;font-weight:800}
+.lines{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.lines i{display:block;height:5px;border-radius:3px;background:#dde3ee}
+.lines i.s{width:62%}
+.lines i.m{width:86%}
+.book{
+  margin-top:14px;height:34px;border-radius:4px;
+  background:linear-gradient(180deg,#1b3f8f,#122b64);
+  position:relative;box-shadow:0 6px 14px -6px rgba(10,30,80,.6);
+}
+.book::after{
+  content:"RESEARCH METHODS";
+  position:absolute;left:8px;top:6px;
+  font-size:5.5px;letter-spacing:.14em;color:#a9c4f5;font-weight:700;
+}
+.book::before{
+  content:"";position:absolute;left:0;right:0;bottom:-7px;height:7px;
+  border-radius:0 0 4px 4px;background:linear-gradient(180deg,#d8dee9,#b9c2d3);
+}
+
+.panel{
+  background:#fff;border-radius:8px;margin-left:12px;
+  padding:11px;box-shadow:0 1px 3px rgba(20,35,80,.12);
+  display:flex;flex-direction:column;gap:9px;
+}
+.panel-head{display:flex;align-items:center;gap:7px;padding-bottom:8px;border-bottom:1px solid #eaeef6}
+.panel-head .nm{font-size:10.5px;font-weight:800;color:#12213f;letter-spacing:-.01em}
+.panel-head .gear{margin-left:auto;color:#9aa5ba}
+.verified{
+  display:flex;align-items:center;gap:8px;
+  background:#eefaf1;border:1px solid #c6ecd3;border-radius:7px;padding:8px 9px;
+}
+.verified .vt{font-size:9.5px;font-weight:800;color:#0f7a3d;line-height:1.3}
+.verified .vs{font-size:8.5px;color:#4b8a68;line-height:1.3}
+.flabel{font-size:8.5px;font-weight:700;color:#4a5670;letter-spacing:.01em}
+.select{
+  display:flex;align-items:center;
+  border:1px solid #d6dce8;border-radius:6px;
+  padding:6px 9px;font-size:9.5px;color:#22314f;font-weight:600;background:#fbfcfe;
+}
+.select::after{content:"";margin-left:auto;width:5px;height:5px;border-right:1.4px solid #7c879c;border-bottom:1.4px solid #7c879c;transform:rotate(45deg) translateY(-2px)}
+.refbox{
+  border:1px solid #d9e0ec;border-radius:6px;background:#f7f9fd;
+  padding:8px 9px;font-size:8px;line-height:1.55;color:#2b3852;
+}
+.refbox .doi{color:#2f6fd8}
+.panel .cta{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  background:var(--brand);color:#fff;border-radius:6px;
+  padding:8px;font-size:9.5px;font-weight:800;
+}
+.panel .cta2{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  border:1px solid #d6dce8;border-radius:6px;background:#fff;
+  padding:7px;font-size:9.5px;font-weight:700;color:#33415e;
+}
+
+/* glowing scope + rays overlay */
+.scope{
+  position:absolute;left:45%;top:53%;
+  transform:translate(-50%,-50%);
+  z-index:3;pointer-events:none;
+}
+.scope .halo{
+  position:absolute;inset:-40px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(90,160,255,.95),rgba(45,110,240,.55) 42%,rgba(30,80,200,.18) 66%,transparent 80%);
+  filter:blur(9px);
+}
+.scope svg{position:relative}
+.rays{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible}
+
+/* style chips */
+.styles{
+  display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end;
+  margin-top:20px;
+}
+.chip{
+  padding:7px 9px;border-radius:8px;white-space:nowrap;
+  background:rgba(12,22,50,.75);
+  border:1px solid var(--line);
+  font-size:11px;font-weight:600;color:var(--ink-2);
+}
+.chip.more{color:var(--muted);background:none;border-color:transparent}
+
+/* ============================================================
+   SECTION SHELL
+   ============================================================ */
+section{scroll-margin-top:88px}
+.sec-title{
+  text-align:center;
+  font-size:13px;font-weight:800;letter-spacing:.2em;
+  color:var(--brand-2);text-transform:uppercase;
+  margin-bottom:26px;
+}
+.shell{
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  background:linear-gradient(180deg,rgba(9,17,42,.72),rgba(6,12,32,.62));
+  padding:34px 30px;
+}
+
+/* ============================================================
+   HOW IT WORKS
+   ============================================================ */
+.how{padding:34px 0}
+.steps{
+  display:grid;
+  grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;
+  align-items:start;gap:0;
+}
+.step{text-align:center;padding:0 14px}
+.step .ico{height:60px;display:grid;place-items:center;margin-bottom:20px}
+.step .hd{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:12px}
+.step .num{
+  width:21px;height:21px;border-radius:50%;flex:none;
+  background:var(--brand);color:#fff;
+  font-size:11px;font-weight:800;
+  display:grid;place-items:center;
+}
+.step .hd h3{font-size:18.5px;font-weight:800;letter-spacing:-.02em}
+.step p{font-size:13.5px;line-height:1.6;color:var(--muted);max-width:24ch;margin:0 auto}
+.arrow{display:grid;place-items:center;padding-top:74px;color:var(--brand);opacity:.85}
+
+/* ============================================================
+   FEATURES
+   ============================================================ */
+.features{position:relative;isolation:isolate;padding:66px 0 72px;overflow:hidden}
+/* photographic band: Library of Congress Main Reading Room (public domain) */
+.features::before{
+  content:"";position:absolute;inset:0;z-index:-2;
+  background:url("assets/features-bg.jpg") center 40% / cover no-repeat;
+  filter:grayscale(.4) brightness(.8) contrast(1.04);
+}
+/* navy wash + top/bottom fade so the band blends into the page */
+.features::after{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:
+    linear-gradient(180deg,#040918 0%,rgba(5,11,28,.6) 17%,rgba(5,11,28,.46) 50%,rgba(5,11,28,.6) 83%,#040918 100%),
+    linear-gradient(180deg,rgba(14,46,122,.34),rgba(8,26,84,.42));
+}
+.fgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.fcard{
+  border:1px solid rgba(38,60,112,.85);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(7,14,36,.9),rgba(4,10,26,.84));
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  padding:22px 20px 24px;
+  transition:border-color .2s, transform .2s, background .2s;
+}
+.fcard:hover{border-color:rgba(70,120,225,.7);transform:translateY(-3px);background:linear-gradient(180deg,rgba(12,24,56,.94),rgba(6,13,34,.9))}
+.fcard .ic{
+  width:42px;height:42px;border-radius:11px;
+  display:grid;place-items:center;margin-bottom:16px;
+  border:1px solid rgba(255,255,255,.07);
+}
+.fcard h3{
+  font-size:12.5px;font-weight:800;letter-spacing:.075em;
+  text-transform:uppercase;line-height:1.45;margin-bottom:11px;color:#fff;
+}
+.fcard p{font-size:13.5px;line-height:1.65;color:var(--muted)}
+
+.ic-green {background:rgba(30,140,80,.16)}
+.ic-red   {background:rgba(200,50,65,.16)}
+.ic-amber {background:rgba(210,150,30,.16)}
+.ic-violet{background:rgba(120,90,240,.16)}
+.ic-blue  {background:rgba(45,110,235,.16)}
+.ic-teal  {background:rgba(30,150,160,.16)}
+.ic-indigo{background:rgba(80,95,225,.16)}
+.ic-sky   {background:rgba(40,125,215,.16)}
+
+/* ============================================================
+   DATABASES
+   ============================================================ */
+.dbs{padding:26px 0 10px}
+.dbrow{display:grid;grid-template-columns:repeat(11,1fr);gap:11px;align-items:stretch}
+.db{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:linear-gradient(180deg,#0b1330,#080f26);
+  min-height:74px;
+  display:grid;place-items:center;
+  padding:10px 6px;text-align:center;
+  transition:border-color .2s, transform .2s;
+}
+.db:hover{border-color:rgba(60,110,215,.5);transform:translateY(-2px)}
+.db .nm{font-size:12.5px;font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#e6edff}
+.db .nm small{display:block;font-size:9.5px;font-weight:600;letter-spacing:.02em;color:#c2cee8;margin-top:2px}
+.db .row{display:flex;align-items:center;gap:5px;justify-content:center}
+.dbmore{text-align:center;font-size:12px;color:var(--muted);margin-top:12px}
+
+/* ============================================================
+   BENEFIT CARDS
+   ============================================================ */
+.benefits{padding:38px 0}
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.bcard{
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(9,17,42,.85),rgba(6,12,30,.7));
+  padding:22px 20px;
+  display:flex;flex-direction:column;
+}
+.bcard .top{display:flex;gap:13px;align-items:flex-start;margin-bottom:18px}
+.bcard .top svg{flex:none;margin-top:2px}
+.bcard h3{
+  font-size:12.5px;font-weight:800;letter-spacing:.075em;
+  text-transform:uppercase;color:var(--brand-2);margin-bottom:9px;line-height:1.4;
+}
+.bcard p{font-size:13px;line-height:1.6;color:var(--muted)}
+.mini{
+  margin-top:auto;padding-top:12px;
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  background:rgba(4,9,24,.6);
+  padding:12px;
+  display:flex;flex-direction:column;gap:9px;
+}
+.mrow{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--ink-2)}
+.mrow .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.mrow .lbl{flex:1}
+.mrow .rt{font-size:10.5px;color:var(--muted);margin-right:2px}
+.meter{width:34px;height:5px;border-radius:3px;background:#16224a;overflow:hidden;flex:none}
+.meter i{display:block;height:100%;border-radius:3px}
+.yr{display:flex;align-items:center;gap:12px;font-size:11.5px}
+.yr .y{color:var(--muted);font-variant-numeric:tabular-nums;width:30px}
+.tag{padding:3px 9px;border-radius:6px;font-size:10.5px;font-weight:700}
+.tag.f{background:rgba(45,110,235,.18);color:#8db6ff}
+.tag.e{background:rgba(120,90,240,.18);color:#b3a1fb}
+.tag.n{background:rgba(30,140,80,.2);color:#68dc99}
+.exp{display:flex;gap:12px;justify-content:center;padding:4px 0}
+.expico{
+  width:40px;height:46px;border-radius:5px;background:#fff;
+  display:grid;place-items:center;flex:none;
+  box-shadow:0 4px 12px -4px rgba(0,0,0,.6);
+  font-size:17px;font-weight:800;
+}
+
+/* ============================================================
+   GUIDES
+   ============================================================ */
+.guides{padding:34px 0}
+.ggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:26px}
+.gcard{
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(9,17,42,.85),rgba(6,12,30,.7));
+  padding:20px;
+}
+.gcard .gnum{
+  font-size:11px;font-weight:800;letter-spacing:.14em;
+  color:var(--brand-2);text-transform:uppercase;margin-bottom:10px;
+}
+.gcard h3{font-size:15.5px;font-weight:800;letter-spacing:-.015em;margin-bottom:9px;color:#fff}
+.gcard p{font-size:13.5px;line-height:1.62;color:var(--muted)}
+.gnote{
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  border:1px solid rgba(48,88,175,.42);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(12,24,58,.8),rgba(7,14,36,.7));
+  padding:20px 24px;
+}
+.gnote .gtxt{flex:1;min-width:260px}
+.gnote h4{font-size:15.5px;font-weight:800;margin-bottom:7px;letter-spacing:-.015em}
+.gnote p{font-size:13.5px;line-height:1.6;color:var(--muted)}
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.faq{padding:34px 0}
+.faq-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;align-items:start}
+details.qa{
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(9,17,42,.85),rgba(6,12,30,.7));
+  padding:16px 18px;
+  transition:border-color .2s;
+}
+details.qa[open]{border-color:rgba(60,110,215,.5)}
+details.qa summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:flex-start;gap:12px;
+  font-size:14.5px;font-weight:700;letter-spacing:-.01em;color:#fff;line-height:1.45;
+}
+details.qa summary::-webkit-details-marker{display:none}
+details.qa summary::after{
+  content:"";flex:none;margin-left:auto;margin-top:5px;
+  width:7px;height:7px;
+  border-right:2px solid var(--brand-2);border-bottom:2px solid var(--brand-2);
+  transform:rotate(45deg);transition:transform .2s;
+}
+details.qa[open] summary::after{transform:rotate(-135deg)}
+details.qa p{margin-top:12px;font-size:13.5px;line-height:1.68;color:var(--muted)}
+details.qa p a{color:var(--brand-2);text-decoration:underline;text-underline-offset:3px}
+
+/* ============================================================
+   CTA BAND
+   ============================================================ */
+.cta-band{padding:26px 0 60px}
+.band{
+  border:1px solid rgba(48,88,175,.5);
+  border-radius:var(--radius-lg);
+  background:
+    radial-gradient(700px 260px at 14% 50%, rgba(38,96,225,.30), transparent 70%),
+    linear-gradient(180deg,rgba(10,20,52,.92),rgba(6,13,34,.9));
+  padding:38px 44px;
+  display:flex;align-items:center;gap:38px;flex-wrap:wrap;
+  box-shadow:0 30px 70px -34px rgba(30,90,220,.6);
+}
+.band .orb{position:relative;flex:none}
+.band .orb::before{
+  content:"";position:absolute;inset:-26px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(70,140,255,.5),transparent 72%);
+  filter:blur(4px);
+}
+.band .orb svg{position:relative}
+.band .txt{flex:1;min-width:280px}
+.band h2{font-size:clamp(24px,2.6vw,31px);line-height:1.25;letter-spacing:-.03em;font-weight:800}
+.band p{margin-top:12px;font-size:14.5px;color:var(--ink-2)}
+.band .act{display:flex;flex-direction:column;align-items:center;gap:12px}
+.band .act .note{font-size:12.5px;color:var(--muted)}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer{border-top:1px solid var(--line-soft);padding:52px 0 30px;background:rgba(3,7,18,.5)}
+.fgrid2{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;gap:34px}
+.fabout p{margin-top:16px;font-size:13px;line-height:1.65;color:var(--muted);max-width:26em}
+.fcol h4{font-size:13.5px;font-weight:800;margin-bottom:16px;color:#fff}
+.fcol li{margin-bottom:11px}
+.fcol a{font-size:13px;color:var(--muted);transition:color .18s}
+.fcol a:hover{color:var(--brand-2)}
+.fcol .blurb{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.socials{display:flex;gap:10px}
+.socials a{
+  width:34px;height:34px;border-radius:50%;
+  background:#101a38;border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--ink-2);
+  transition:background .18s,color .18s,border-color .18s;
+}
+.socials a:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+.copy{
+  margin-top:44px;padding-top:24px;
+  border-top:1px solid var(--line-soft);
+  text-align:center;font-size:12.5px;color:var(--muted);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:1100px){
+  .fgrid,.bgrid{grid-template-columns:repeat(2,1fr)}
+  .dbrow{grid-template-columns:repeat(6,1fr)}
+  .ggrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:960px){
+  .nav-links{display:none}
+  .hero{padding:44px 0 20px}
+  .hero-grid{grid-template-columns:minmax(0,1fr);gap:44px}
+  .styles{justify-content:flex-start}
+  .steps{grid-template-columns:1fr 1fr;gap:30px 0}
+  .arrow{display:none}
+  .fgrid2{grid-template-columns:1fr 1fr;gap:32px}
+  .band{padding:30px 26px;gap:26px}
+  .band .act{align-items:flex-start}
+}
+@media (max-width:640px){
+  .wrap{padding:0 18px}
+  .shell{padding:26px 18px}
+  .fgrid,.bgrid,.steps,.ggrid,.faq-list{grid-template-columns:minmax(0,1fr)}
+  .dbrow{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fgrid2{grid-template-columns:minmax(0,1fr)}
+  .trust{gap:18px;flex-direction:column}
+  .trust-item{border-left:0;padding:0}
+  .browser-body{grid-template-columns:1fr}
+  .panel{margin-left:0;margin-top:12px}
+  .scope{display:none}
+  .hero-cta{gap:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     NAV
+     ========================================================= -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="#top" aria-label="CitationSniper home">
+      <svg class="mark" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="23" fill="none" stroke="#fff" stroke-width="4.5"
+                stroke-dasharray="17 9.5" stroke-dashoffset="8.5"/>
+        <path d="M32 3.5v13M32 47.5v13M3.5 32h13M47.5 32h13" stroke="#fff" stroke-width="4.5" stroke-linecap="butt"/>
+        <g fill="#fff">
+          <path d="M25.5 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+          <path d="M38.6 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+        </g>
+      </svg>
+      <span class="word">Citation<span class="b">Sniper</span></span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How It Works</a>
+      <a href="#databases">Databases</a>
+      <a href="#guides">Guides</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <a class="btn btn--sm nav-cta"
+       href="https://chromewebstore.google.com/detail/citationsniper/mbfganlabecflabkhokfgiohldpcekkp"
+       target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#ea4335" d="M0 12A12 12 0 0 1 18 1.6L12 12Z"/>
+        <path fill="#fbbc05" d="M18 1.6A12 12 0 0 1 18 22.4L12 12Z"/>
+        <path fill="#34a853" d="M18 22.4A12 12 0 0 1 0 12L12 12Z"/>
+        <circle cx="12" cy="12" r="5.7" fill="#fff"/>
+        <circle cx="12" cy="12" r="4.6" fill="#4285f4"/>
+      </svg>
+      Add to Chrome
+    </a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- =========================================================
+     HERO
+     ========================================================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+
+    <div class="hero-copy">
+      <span class="pill">AI-Powered Research Assistant</span>
+
+      <h1>Find <em>real citations.</em><br>Not just related ones.</h1>
+
+      <p class="lede">AI-powered citation finder that also catches fake references before your supervisor does.</p>
+
+      <p class="sub">Most citation tools help you format what you already have. CitationSniper helps you find what you're missing, verify what you've got, and catch what shouldn't be there at all.</p>
+
+      <div class="hero-cta">
+        <a class="btn btn--lg"
+           href="https://chromewebstore.google.com/detail/citationsniper/mbfganlabecflabkhokfgiohldpcekkp"
+           target="_blank" rel="noopener">
+          <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#ea4335" d="M0 12A12 12 0 0 1 18 1.6L12 12Z"/>
+            <path fill="#fbbc05" d="M18 1.6A12 12 0 0 1 18 22.4L12 12Z"/>
+            <path fill="#34a853" d="M18 22.4A12 12 0 0 1 0 12L12 12Z"/>
+            <circle cx="12" cy="12" r="5.7" fill="#fff"/>
+            <circle cx="12" cy="12" r="4.6" fill="#4285f4"/>
+          </svg>
+          Add to Chrome – It's Free
+        </a>
+      </div>
+
+      <div class="trust">
+        <div class="trust-item">
+          <svg width="20" height="22" viewBox="0 0 20 22" fill="none" aria-hidden="true">
+            <path d="M10 2v11.4" stroke="#6fa4ff" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M5.6 9.4 10 13.8l4.4-4.4" stroke="#6fa4ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.6 16.4v1.4a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2v-1.4" stroke="#6fa4ff" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <div class="t1">135 installs</div>
+            <div class="t2">in the last 90 days</div>
+          </div>
+        </div>
+
+        <div class="trust-item">
+          <div>
+            <div class="stars" aria-label="Rated 5 out of 5">★★★★★</div>
+            <div class="t2" style="margin-top:5px">5.0/5 on the Chrome Web Store</div>
+          </div>
+        </div>
+
+        <div class="trust-item">
+          <svg width="18" height="22" viewBox="0 0 18 22" fill="none" aria-hidden="true">
+            <rect x="2.5" y="9" width="13" height="11" rx="2.2" stroke="#6fa4ff" stroke-width="1.5"/>
+            <path d="M5.6 9V6.4a3.4 3.4 0 0 1 6.8 0V9" stroke="#6fa4ff" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <div class="t1">Privacy-first</div>
+            <div class="t2">We only read what you select</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- visual ---------- -->
+    <div class="hero-visual">
+      <div class="browser">
+        <div class="browser-bar">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="tab"><span class="fav"></span>Journal of Digital Education<span class="x">×</span></div>
+          <span class="plus">+</span>
+        </div>
+
+        <div class="url">
+          <svg class="navico" width="34" height="10" viewBox="0 0 34 10" fill="none" aria-hidden="true">
+            <path d="M4 1 1 5l3 4M11 1 8 5l3 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 2.2A3.2 3.2 0 1 0 20 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <div class="field">https://www.journalofdigitaleducation.com/article/12345</div>
+          <svg width="30" height="10" viewBox="0 0 30 10" fill="none" aria-hidden="true">
+            <path d="M2 2l6 6M8 2l-6 6" stroke="#9aa4b6" stroke-width="1.1" stroke-linecap="round"/>
+            <path d="M18 3a3 3 0 1 1-1 4.6" stroke="#9aa4b6" stroke-width="1.1" stroke-linecap="round"/>
+            <circle cx="27" cy="2" r=".9" fill="#9aa4b6"/><circle cx="27" cy="5" r=".9" fill="#9aa4b6"/><circle cx="27" cy="8" r=".9" fill="#9aa4b6"/>
+          </svg>
+        </div>
+
+        <div class="browser-body">
+          <div class="doc">
+            <div class="kicker">Research Article</div>
+            <h4>The Impact of Digital Learning on Student Engagement</h4>
+            <div class="lines">
+              <i></i><i class="m"></i><i></i><i class="s"></i><i class="m"></i><i></i><i class="s"></i>
+            </div>
+            <div class="book"></div>
+            <div class="lines" style="margin-top:16px"><i class="s"></i></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <svg width="15" height="15" viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="32" r="23" fill="none" stroke="#123a86" stroke-width="6" stroke-dasharray="17 9.5" stroke-dashoffset="8.5"/>
+                <path d="M32 3.5v13M32 47.5v13M3.5 32h13M47.5 32h13" stroke="#123a86" stroke-width="6"/>
+                <g fill="#123a86"><path d="M25.5 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/><path d="M38.6 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/></g>
+              </svg>
+              <span class="nm">Citation Sniper</span>
+              <svg class="gear" width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="2.4" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M8 1.2v1.9M8 12.9v1.9M14.8 8h-1.9M3.1 8H1.2M12.8 3.2l-1.3 1.3M4.5 11.5l-1.3 1.3M12.8 12.8l-1.3-1.3M4.5 4.5 3.2 3.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <div class="verified">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="10" cy="10" r="8.2" stroke="#17a34a" stroke-width="1.6"/>
+                <path d="M6.2 10.3 8.8 13l5-5.4" stroke="#17a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div>
+                <div class="vt">Source Verified</div>
+                <div class="vs">Journal Article</div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flabel">Cite in</div>
+              <div class="select" style="margin-top:4px">APA (7th Edition)</div>
+            </div>
+
+            <div>
+              <div class="flabel">Reference</div>
+              <div class="refbox" style="margin-top:4px">
+                Johnson, R. L. (2023). The impact of digital learning on student engagement.
+                <em>Journal of Digital Education, 8</em>(2), 45–67.
+                <span class="doi">https://doi.org/10.1234/jde.2023.56789</span>
+              </div>
+            </div>
+
+            <div class="cta">
+              <svg width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <rect x="4.6" y="4.6" width="8.2" height="8.2" rx="1.5" stroke="#fff" stroke-width="1.3"/>
+                <path d="M9.9 2.2A1.5 1.5 0 0 0 8.6 1.2H2.7a1.5 1.5 0 0 0-1.5 1.5v5.9c0 .6.4 1.1.9 1.3" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+              Copy Citation
+            </div>
+            <div class="cta2">
+              Export
+              <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" stroke="#33415e" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- scope + rays -->
+        <svg class="rays" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="ray" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#4d94ff" stop-opacity="0"/>
+              <stop offset="1" stop-color="#8ec0ff" stop-opacity=".9"/>
+            </linearGradient>
+          </defs>
+          <g stroke="url(#ray)" stroke-width=".55" fill="none" stroke-linecap="round">
+            <path d="M53 45 L66 32"/><path d="M54 51 L66 49"/>
+            <path d="M53 57 L65 66"/>
+          </g>
+          <g fill="#9cc7ff">
+            <path d="M66.8 31.4l-3.9-.4 1.5 3.4z"/>
+            <path d="M66.9 49l-3.2-1.9v3.8z"/>
+            <path d="M65.8 66.8l-3.8-.4 2 3.2z"/>
+          </g>
+          <g stroke="#6ea8ff" stroke-width=".45" fill="none" stroke-linecap="round" opacity=".65">
+            <path d="M28 38 L41 46"/><path d="M29 63 L41 56"/>
+          </g>
+        </svg>
+
+        <div class="scope" aria-hidden="true">
+          <div class="halo"></div>
+          <svg width="86" height="86" viewBox="0 0 64 64">
+            <defs>
+              <radialGradient id="scopeFill" cx="50%" cy="42%" r="62%">
+                <stop offset="0" stop-color="#2c62c8"/>
+                <stop offset="1" stop-color="#0b1f52"/>
+              </radialGradient>
+            </defs>
+            <circle cx="32" cy="32" r="30" fill="url(#scopeFill)"/>
+            <circle cx="32" cy="32" r="23" fill="none" stroke="#cfe2ff" stroke-width="4.5" stroke-dasharray="17 9.5" stroke-dashoffset="8.5"/>
+            <path d="M32 3.5v13M32 47.5v13M3.5 32h13M47.5 32h13" stroke="#cfe2ff" stroke-width="4.5"/>
+            <g fill="#cfe2ff">
+              <path d="M25.5 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+              <path d="M38.6 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="styles">
+        <span class="chip">APA</span>
+        <span class="chip">MLA</span>
+        <span class="chip">Chicago</span>
+        <span class="chip">Harvard</span>
+        <span class="chip">IEEE</span>
+        <span class="chip">AMA</span>
+        <span class="chip">Oxford</span>
+        <span class="chip">ACS</span>
+        <span class="chip more">&amp; More</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- =========================================================
+     HOW IT WORKS
+     ========================================================= -->
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="shell">
+      <h2 class="sec-title">How It Works</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="ico">
+            <svg width="58" height="52" viewBox="0 0 58 52" fill="none" aria-hidden="true">
+              <rect x="2" y="4" width="10" height="4" rx="1.5" fill="#4d8dff"/>
+              <rect x="17" y="4" width="34" height="4" rx="1.5" fill="#2c569c"/>
+              <rect x="2" y="14" width="10" height="4" rx="1.5" fill="#4d8dff"/>
+              <rect x="17" y="14" width="26" height="4" rx="1.5" fill="#2c569c"/>
+              <rect x="2" y="24" width="10" height="4" rx="1.5" fill="#4d8dff"/>
+              <rect x="17" y="24" width="34" height="4" rx="1.5" fill="#7fb0ff"/>
+              <rect x="2" y="34" width="10" height="4" rx="1.5" fill="#4d8dff"/>
+              <rect x="17" y="34" width="20" height="4" rx="1.5" fill="#2c569c"/>
+              <path d="M36 30l14 12-6 1 3.5 7-3 1.4-3.6-7L36 48z" fill="#eaf1ff" stroke="#0a1330" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="hd"><span class="num">1</span><h3>Select</h3></div>
+          <p>Select any sentence or claim on a webpage or PDF — or paste one directly.</p>
+        </div>
+
+        <div class="arrow">
+          <svg width="46" height="14" viewBox="0 0 46 14" fill="none" aria-hidden="true">
+            <path d="M0 7h40M34 1.5 40 7l-6 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="step">
+          <div class="ico">
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+              <ellipse cx="28" cy="12" rx="17" ry="6.5" stroke="#4d8dff" stroke-width="2.4"/>
+              <path d="M11 12v16c0 3.6 7.6 6.5 17 6.5s17-2.9 17-6.5V12" stroke="#4d8dff" stroke-width="2.4"/>
+              <path d="M11 28v16c0 3.6 7.6 6.5 17 6.5s17-2.9 17-6.5V28" stroke="#4d8dff" stroke-width="2.4"/>
+            </svg>
+          </div>
+          <div class="hd"><span class="num">2</span><h3>Search</h3></div>
+          <p>Get results from reputable academic databases, searched in parallel.</p>
+        </div>
+
+        <div class="arrow">
+          <svg width="46" height="14" viewBox="0 0 46 14" fill="none" aria-hidden="true">
+            <path d="M0 7h40M34 1.5 40 7l-6 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="step">
+          <div class="ico">
+            <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true">
+              <circle cx="32" cy="32" r="23" fill="none" stroke="#4d8dff" stroke-width="4.5" stroke-dasharray="17 9.5" stroke-dashoffset="8.5"/>
+              <path d="M32 3.5v13M32 47.5v13M3.5 32h13M47.5 32h13" stroke="#4d8dff" stroke-width="4.5"/>
+              <g fill="#dce9ff">
+                <path d="M25.5 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+                <path d="M38.6 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+              </g>
+            </svg>
+          </div>
+          <div class="hd"><span class="num">3</span><h3>Analyze</h3></div>
+          <p>See which results support, contradict, or relate to your claim, with a confidence score.</p>
+        </div>
+
+        <div class="arrow">
+          <svg width="46" height="14" viewBox="0 0 46 14" fill="none" aria-hidden="true">
+            <path d="M0 7h40M34 1.5 40 7l-6 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="step">
+          <div class="ico">
+            <svg width="46" height="56" viewBox="0 0 46 56" fill="none" aria-hidden="true">
+              <path d="M4 3h24l14 13.5V53H4z" stroke="#dce9ff" stroke-width="2.4" stroke-linejoin="round"/>
+              <path d="M28 3v14h14" stroke="#dce9ff" stroke-width="2.4" stroke-linejoin="round"/>
+              <path d="M12 27h22M12 35h22M12 43h14" stroke="#4d8dff" stroke-width="2.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="hd"><span class="num">4</span><h3>Export</h3></div>
+          <p>Export straight to Word, Google Docs, or plain text.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     FEATURES
+     ========================================================= -->
+<section class="features" id="features">
+  <div class="wrap">
+    <h2 class="sec-title">Powerful Features</h2>
+
+    <div class="fgrid">
+      <article class="fcard">
+        <div class="ic ic-green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" stroke="#3ecf7f" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="3.6" stroke="#3ecf7f" stroke-width="1.8"/>
+            <path d="M12 .8v4.4M12 18.8v4.4M.8 12h4.4M18.8 12h4.4" stroke="#3ecf7f" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Find real citations,<br>not just related ones</h3>
+        <p>Each result comes with an Evidence Strength badge — Supporting, Contradictory, Mixed, or Related — plus a credibility tier, DOAJ status, and a DOI check confirming the source actually resolves. No more guessing whether a result is worth citing.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-red">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2.2 3.8 5.3v6.2c0 5.1 3.4 9.4 8.2 10.8 4.8-1.4 8.2-5.7 8.2-10.8V5.3L12 2.2z" stroke="#ff6a75" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M9.4 9.4l5.2 5.2M14.6 9.4l-5.2 5.2" stroke="#ff6a75" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Catch fake<br>AI citations</h3>
+        <p>Paste a reference list — including ones ChatGPT or another AI tool generated — and CitationSniper checks whether each source actually exists before you submit it.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-amber">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.6" stroke="#f5b942" stroke-width="1.8"/>
+            <path d="M12 6.4v6l3.7 2.2" stroke="#f5b942" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 4.6l-1.6 3.1 3.4-.4" stroke="#f5b942" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Update outdated<br>citations</h3>
+        <p>Paste your reference list and get each source classified as foundational or empirical, with newer research suggested where a finding may have been superseded.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-violet">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="2.6" y="4.2" width="8" height="6.4" rx="1.6" stroke="#a48bff" stroke-width="1.8"/>
+            <rect x="13.4" y="4.2" width="8" height="6.4" rx="1.6" stroke="#a48bff" stroke-width="1.8"/>
+            <rect x="2.6" y="13.4" width="8" height="6.4" rx="1.6" stroke="#a48bff" stroke-width="1.8"/>
+            <rect x="13.4" y="13.4" width="8" height="6.4" rx="1.6" stroke="#a48bff" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <h3>Bulk lookup</h3>
+        <p>Paste multiple references at once and get them all resolved together, streaming in as they're verified — no need to check one at a time.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10 13.6a4.3 4.3 0 0 0 6.5.5l2.6-2.6a4.3 4.3 0 0 0-6.1-6.1l-1.5 1.5" stroke="#6ba5ff" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M14 10.4a4.3 4.3 0 0 0-6.5-.5l-2.6 2.6a4.3 4.3 0 0 0 6.1 6.1l1.5-1.5" stroke="#6ba5ff" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Trace a source's<br>own citations</h3>
+        <p>See what a paper cites and what has cited it since, so you can trace an idea backward to its origin or forward to the current state of the field.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-teal">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M13.6 2.4H6.2A1.8 1.8 0 0 0 4.4 4.2v15.6a1.8 1.8 0 0 0 1.8 1.8h11.6a1.8 1.8 0 0 0 1.8-1.8V8.2l-6-5.8z" stroke="#3fc7c7" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M13.4 2.6v5.6h6" stroke="#3fc7c7" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M8 13.4h8M8 17h5" stroke="#3fc7c7" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Works on<br>PDFs too</h3>
+        <p>Extract and search directly from a PDF, not just web pages.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-indigo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <ellipse cx="12" cy="5.4" rx="7.4" ry="2.9" stroke="#8f9dff" stroke-width="1.8"/>
+            <path d="M4.6 5.4v6.4c0 1.6 3.3 2.9 7.4 2.9s7.4-1.3 7.4-2.9V5.4" stroke="#8f9dff" stroke-width="1.8"/>
+            <path d="M4.6 11.8v6.4c0 1.6 3.3 2.9 7.4 2.9s7.4-1.3 7.4-2.9v-6.4" stroke="#8f9dff" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <h3>Reputable databases.<br>Searched together.</h3>
+        <p>Simultaneous search across reputable academic databases for comprehensive coverage and better results.</p>
+      </article>
+
+      <article class="fcard">
+        <div class="ic ic-sky">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2.2 3.8 5.3v6.2c0 5.1 3.4 9.4 8.2 10.8 4.8-1.4 8.2-5.7 8.2-10.8V5.3L12 2.2z" stroke="#5fa8ff" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M8.4 11.9 11 14.5l4.7-4.9" stroke="#5fa8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Privacy-first</h3>
+        <p>CitationSniper only reads the text you explicitly select. We don't track your browsing or scrape pages in the background.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     DATABASES
+     ========================================================= -->
+<section class="dbs" id="databases">
+  <div class="wrap">
+    <h2 class="sec-title">Reputable Academic Databases Searched in Parallel</h2>
+
+    <div class="dbrow">
+      <div class="db">
+        <div>
+          <svg width="26" height="16" viewBox="0 0 26 16" aria-hidden="true">
+            <path d="M2 11c3-6 6-8 9-6s5 7 8 5" stroke="#ef4a3f" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <path d="M4 14c3-6 6-8 9-6s5 7 8 5" stroke="#f9c22e" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".9"/>
+            <circle cx="4" cy="5" r="2.4" fill="#3eb1c8"/>
+          </svg>
+          <div class="nm" style="margin-top:5px">Crossref</div>
+        </div>
+      </div>
+
+      <div class="db"><div class="nm" style="font-size:14px"><span style="color:#3a6fd8">Pub</span><span style="color:#e8edf8">Med</span></div></div>
+
+      <div class="db">
+        <div class="nm" style="font-size:13px">
+          <span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span>
+          <small>Scholar</small>
+        </div>
+      </div>
+
+      <div class="db">
+        <div class="row">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 12c3-7 8-9 12-10-2 4-3 7-6 9-2 1.4-4 1.2-6 1z" fill="#1857b6"/><path d="M4 13c2.5-4 6-6 9-7" stroke="#f5a623" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+          <div class="nm" style="font-size:10.5px;text-align:left">Semantic<br>Scholar</div>
+        </div>
+      </div>
+
+      <div class="db">
+        <div class="row">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 4h3l1 8H2zM5.5 3h3l1 10h-3zM10 5h3l1 6h-3z" fill="#e8edf8"/></svg>
+          <div class="nm">DOAJ</div>
+        </div>
+      </div>
+
+      <div class="db">
+        <div class="row">
+          <svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><path d="M2 2l8 6-8 6" stroke="#e8edf8" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="nm">BASE</div>
+        </div>
+      </div>
+
+      <div class="db">
+        <div class="row">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#7c3aad" stroke-width="2.2"/><path d="M8 4.4v3.9l2.6 1.6" stroke="#7c3aad" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+          <div class="nm" style="font-size:10.5px;text-align:left">Cochrane<br>Library</div>
+        </div>
+      </div>
+
+      <div class="db"><div class="nm" style="font-size:10.5px;line-height:1.3">Wiley<br><span style="font-weight:600;color:#c2cee8">Online Library</span></div></div>
+
+      <div class="db"><div class="nm" style="font-size:11px;color:#f36f21">ScienceDirect</div></div>
+
+      <div class="db">
+        <div class="row">
+          <svg width="12" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M6 0l1.6 3.2L11 4l-2.6 2.4.8 3.4L6 8.2 2.8 9.8l.8-3.4L1 4l3.4-.8z" fill="#00629b"/></svg>
+          <div class="nm" style="font-size:11px;color:#4aa3e0">IEEE<br><span style="font-size:9px;color:#c2cee8">Xplore</span></div>
+        </div>
+      </div>
+
+      <div class="db"><div class="nm" style="font-size:14px;font-family:Georgia,serif">ar<span style="color:#b31b1b">X</span>iv</div></div>
+    </div>
+
+    <p class="dbmore">… and more</p>
+  </div>
+</section>
+
+<!-- =========================================================
+     BENEFITS
+     ========================================================= -->
+<section class="benefits">
+  <div class="wrap">
+    <div class="bgrid">
+
+      <article class="bcard">
+        <div class="top">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="10.6" cy="10.6" r="7.2" stroke="#6ba5ff" stroke-width="1.9"/>
+            <path d="M15.9 15.9 21 21" stroke="#6ba5ff" stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <h3>Evidence you can trust</h3>
+            <p>Confidence scores and credibility tiers help you cite with confidence and credibility.</p>
+          </div>
+        </div>
+        <div class="mini">
+          <div class="mrow"><span class="dot" style="background:var(--green)"></span><span class="lbl">Supporting</span><span class="rt">High</span><span class="meter"><i style="width:92%;background:var(--green)"></i></span></div>
+          <div class="mrow"><span class="dot" style="background:var(--red)"></span><span class="lbl">Contradictory</span><span class="rt">Medium</span><span class="meter"><i style="width:58%;background:var(--red)"></i></span></div>
+          <div class="mrow"><span class="dot" style="background:var(--amber)"></span><span class="lbl">Mixed</span><span class="rt">Medium</span><span class="meter"><i style="width:55%;background:var(--amber)"></i></span></div>
+          <div class="mrow"><span class="dot" style="background:#5b8def"></span><span class="lbl">Related</span><span class="rt">Low</span><span class="meter"><i style="width:28%;background:#5b8def"></i></span></div>
+        </div>
+      </article>
+
+      <article class="bcard">
+        <div class="top">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M13.4 2.4H6.2A1.8 1.8 0 0 0 4.4 4.2v15.6a1.8 1.8 0 0 0 1.8 1.8h7" stroke="#6ba5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.4 2.6v5.6h5.6" stroke="#6ba5ff" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M8 12h5M8 15.6h3.5" stroke="#6ba5ff" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="17.6" cy="17.6" r="4" stroke="#6ba5ff" stroke-width="1.8"/>
+            <path d="M15.9 17.7l1.2 1.2 2.3-2.4" stroke="#6ba5ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <h3>Verify before you submit</h3>
+            <p>Catch fabricated or non-existent sources before they raise red flags in your reference list.</p>
+          </div>
+        </div>
+        <div class="mini">
+          <div class="mrow"><span style="color:var(--green)">✅</span><span class="lbl">Source exists &amp; resolves</span></div>
+          <div class="mrow"><span style="color:var(--red)">❌</span><span class="lbl">Source not found</span></div>
+          <div class="mrow"><span style="color:var(--amber)">⚠️</span><span class="lbl">Cannot be verified</span></div>
+        </div>
+      </article>
+
+      <article class="bcard">
+        <div class="top">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 20h18" stroke="#6ba5ff" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M4.4 15.6 9.6 10l3.6 3.4 6-6.6" stroke="#6ba5ff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15.2 6.6h4.2v4.2" stroke="#6ba5ff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <h3>Stay current</h3>
+            <p>Find newer, stronger research to make sure your references are up to date.</p>
+          </div>
+        </div>
+        <div class="mini">
+          <div class="yr"><span class="y">2019</span><span class="tag f">Foundational</span></div>
+          <div class="yr"><span class="y">2021</span><span class="tag e">Empirical</span></div>
+          <div class="yr"><span class="y">2024</span><span class="tag n">Newer research</span></div>
+        </div>
+      </article>
+
+      <article class="bcard">
+        <div class="top">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v11.4" stroke="#6ba5ff" stroke-width="1.9" stroke-linecap="round"/>
+            <path d="M7.4 10.2 12 14.8l4.6-4.6" stroke="#6ba5ff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 18.4v1.2a1.6 1.6 0 0 0 1.6 1.6h12.8a1.6 1.6 0 0 0 1.6-1.6v-1.2" stroke="#6ba5ff" stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <h3>Export your way</h3>
+            <p>One-click export to your favorite format and get back to your research.</p>
+          </div>
+        </div>
+        <div class="mini">
+          <div class="exp">
+            <span class="expico" style="color:#2b579a">W</span>
+            <span class="expico">
+              <svg width="20" height="24" viewBox="0 0 20 24" aria-hidden="true">
+                <path d="M2 1h9l7 6.6V23H2z" fill="#4285f4"/>
+                <path d="M11 1l7 6.6h-7z" fill="#a1c2fa"/>
+                <path d="M5.6 12h9M5.6 15.4h9M5.6 18.8h6" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="expico">
+              <svg width="20" height="24" viewBox="0 0 20 24" aria-hidden="true">
+                <path d="M2 1h9l7 6.6V23H2z" fill="none" stroke="#6b7686" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M11 1v6.6h7" fill="none" stroke="#6b7686" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M5.6 12h9M5.6 15.4h9M5.6 18.8h6" stroke="#6b7686" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     GUIDES
+     ========================================================= -->
+<section class="guides" id="guides">
+  <div class="wrap">
+    <h2 class="sec-title">Guides</h2>
+
+    <div class="ggrid">
+      <article class="gcard">
+        <div class="gnum">Guide 01</div>
+        <h3>Finding sources for a claim</h3>
+        <p>How to select a sentence, read the Evidence Strength badges, and pick the source that actually backs your point rather than the one that merely mentions the topic.</p>
+      </article>
+
+      <article class="gcard">
+        <div class="gnum">Guide 02</div>
+        <h3>Checking an AI-generated reference list</h3>
+        <p>Paste a list from ChatGPT or any AI tool and work through the results, so fabricated or non-existent sources are caught before you submit.</p>
+      </article>
+
+      <article class="gcard">
+        <div class="gnum">Guide 03</div>
+        <h3>Refreshing an outdated bibliography</h3>
+        <p>Sort foundational work from empirical findings and see where newer research may have superseded what you're citing.</p>
+      </article>
+    </div>
+
+    <div class="gnote">
+      <div class="gtxt">
+        <h4>Guides live inside the extension</h4>
+        <p>Download CitationSniper from the Chrome Web Store, then open the extension and select <strong>Guides</strong> from the menu to read them in full — no separate account or download needed.</p>
+      </div>
+      <a class="btn"
+         href="https://chromewebstore.google.com/detail/citationsniper/mbfganlabecflabkhokfgiohldpcekkp"
+         target="_blank" rel="noopener">
+        <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#ea4335" d="M0 12A12 12 0 0 1 18 1.6L12 12Z"/>
+          <path fill="#fbbc05" d="M18 1.6A12 12 0 0 1 18 22.4L12 12Z"/>
+          <path fill="#34a853" d="M18 22.4A12 12 0 0 1 0 12L12 12Z"/>
+          <circle cx="12" cy="12" r="5.7" fill="#fff"/>
+          <circle cx="12" cy="12" r="4.6" fill="#4285f4"/>
+        </svg>
+        Download &amp; Read the Guides
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     FAQ
+     ========================================================= -->
+<section class="faq" id="faq">
+  <div class="wrap">
+    <h2 class="sec-title">Frequently Asked Questions</h2>
+
+    <div class="faq-list">
+      <details class="qa" open>
+        <summary>What does CitationSniper actually do?</summary>
+        <p>You select a sentence or claim on a webpage or PDF, and CitationSniper searches reputable academic databases for research related to it. Each result is analysed and labelled as supporting, contradictory, mixed, or related, so you can tell at a glance whether a source is worth citing.</p>
+      </details>
+
+      <details class="qa">
+        <summary>Is it free?</summary>
+        <p>Yes. The free plan gives you a set number of citation searches per day with results from every connected database. A Pro plan lifts the daily cap and adds more results per search, full abstracts, extra citation styles, and a saved citation library.</p>
+      </details>
+
+      <details class="qa">
+        <summary>Can it really detect fake or AI-generated citations?</summary>
+        <p>It checks whether each reference resolves to a real record in the databases it searches. If a reference cannot be found, it is flagged so you can investigate. A source that cannot be verified is not proof it is fake — it may simply sit outside the databases we search — so treat flags as a prompt to check, not a verdict.</p>
+      </details>
+
+      <details class="qa">
+        <summary>Which databases does it search?</summary>
+        <p>Reputable academic sources including Semantic Scholar, CrossRef, OpenAlex, Europe PMC, and CORE, queried at the same time rather than one after another.</p>
+      </details>
+
+      <details class="qa">
+        <summary>Does it work on PDFs?</summary>
+        <p>Yes. You can select text directly in a PDF opened in your browser, the same way you would on a web page.</p>
+      </details>
+
+      <details class="qa">
+        <summary>Which citation styles can I export?</summary>
+        <p>APA is available on the free plan. Pro adds MLA, Chicago, and Harvard. You can copy a formatted reference or export straight to Word, Google Docs, or plain text.</p>
+      </details>
+
+      <details class="qa">
+        <summary>What do you do with the text I select?</summary>
+        <p>Selected text is sent to our service to run the search and analysis, and is not used to build a profile of you. CitationSniper does not read pages in the background or track your general browsing. Full detail is in the <a href="https://empjosh03.github.io/citationsniper-legal/" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+      </details>
+
+      <details class="qa">
+        <summary>Should I trust the AI analysis on its own?</summary>
+        <p>No. Confidence scores and evidence labels are there to help you shortlist quickly, but AI analysis can be wrong. Always read the source before you cite it — the tool is there to speed up your judgement, not replace it.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     CTA BAND
+     ========================================================= -->
+<section class="cta-band">
+  <div class="wrap">
+    <div class="band">
+      <div class="orb">
+        <svg width="104" height="104" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="23" fill="none" stroke="#dbe9ff" stroke-width="4.5" stroke-dasharray="17 9.5" stroke-dashoffset="8.5"/>
+          <path d="M32 3.5v13M32 47.5v13M3.5 32h13M47.5 32h13" stroke="#dbe9ff" stroke-width="4.5"/>
+          <g fill="#dbe9ff">
+            <path d="M25.5 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+            <path d="M38.6 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="txt">
+        <h2>Better research. Smarter citations.<br>Stronger results.</h2>
+        <p>Add CitationSniper to Chrome and research with confidence.</p>
+      </div>
+
+      <div class="act">
+        <a class="btn btn--lg"
+           href="https://chromewebstore.google.com/detail/citationsniper/mbfganlabecflabkhokfgiohldpcekkp"
+           target="_blank" rel="noopener">
+          <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#ea4335" d="M0 12A12 12 0 0 1 18 1.6L12 12Z"/>
+            <path fill="#fbbc05" d="M18 1.6A12 12 0 0 1 18 22.4L12 12Z"/>
+            <path fill="#34a853" d="M18 22.4A12 12 0 0 1 0 12L12 12Z"/>
+            <circle cx="12" cy="12" r="5.7" fill="#fff"/>
+            <circle cx="12" cy="12" r="4.6" fill="#4285f4"/>
+          </svg>
+          Add to Chrome – It's Free
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- =========================================================
+     FOOTER
+     ========================================================= -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid2">
+      <div class="fabout">
+        <a class="logo" href="#top">
+          <svg class="mark" width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="23" fill="none" stroke="#fff" stroke-width="4.5" stroke-dasharray="17 9.5" stroke-dashoffset="8.5"/>
+            <path d="M32 3.5v13M32 47.5v13M3.5 32h13M47.5 32h13" stroke="#fff" stroke-width="4.5"/>
+            <g fill="#fff">
+              <path d="M25.5 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+              <path d="M38.6 24.5c-3.6 0-6.3 2.7-6.3 6.2 0 3.3 2.4 5.8 5.6 5.8h.9c-.5 1.9-1.9 3.4-3.9 4.3l1.6 2.7c4.3-1.8 6.9-5.6 6.9-10.4 0-5.3-2.3-8.6-4.8-8.6z"/>
+            </g>
+          </svg>
+          <span class="word" style="font-size:19px">Citation<span class="b">Sniper</span></span>
+        </a>
+        <p>AI-powered citation finder that helps you research smarter and cite with confidence.</p>
+      </div>
+
+      <div class="fcol">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How It Works</a></li>
+          <li><a href="https://chromewebstore.google.com/detail/citationsniper/mbfganlabecflabkhokfgiohldpcekkp" target="_blank" rel="noopener">Chrome Extension</a></li>
+        </ul>
+      </div>
+
+      <div class="fcol">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#guides">Guides</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="mailto:scriptum007@gmail.com">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="fcol">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="https://empjosh03.github.io/citationsniper-legal/" target="_blank" rel="noopener">Privacy Policy</a></li>
+          <li><a href="https://empjosh03.github.io/citationsniper-legal/terms-and-conditions.html" target="_blank" rel="noopener">Terms of Service</a></li>
+        </ul>
+      </div>
+
+      <div class="fcol">
+        <h4>Stay Connected</h4>
+        <p class="blurb">Get tips, updates, and more.</p>
+        <div class="socials">
+          <a href="#" aria-label="Twitter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 5.8a8 8 0 0 1-2.4.7 4.1 4.1 0 0 0 1.8-2.3 8.2 8.2 0 0 1-2.6 1A4.1 4.1 0 0 0 11.7 9 11.6 11.6 0 0 1 3.3 4.7a4.1 4.1 0 0 0 1.3 5.5 4 4 0 0 1-1.9-.5 4.1 4.1 0 0 0 3.3 4 4.2 4.2 0 0 1-1.9.1 4.1 4.1 0 0 0 3.8 2.9A8.3 8.3 0 0 1 2 18.4a11.6 11.6 0 0 0 6.3 1.8c7.5 0 11.7-6.3 11.7-11.8v-.5A8.3 8.3 0 0 0 22 5.8z"/></svg>
+          </a>
+          <a href="#" aria-label="LinkedIn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9.5h4v11H3v-11zm7 0h3.8v1.5h.05a4.2 4.2 0 0 1 3.75-2c4 0 4.75 2.6 4.75 6v5.5h-4V16c0-1.5 0-3.4-2.1-3.4s-2.4 1.6-2.4 3.3v4.6h-4v-11z"/></svg>
+          </a>
+          <a href="#" aria-label="Facebook">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6A22 22 0 0 0 14.3 3.5c-2.4 0-4 1.45-4 4.1v2.3H7.6V13h2.7v8h3.2z"/></svg>
+          </a>
+          <a href="#" aria-label="Instagram">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.1" stroke="currentColor" stroke-width="1.8"/><circle cx="17.1" cy="6.9" r="1.2" fill="currentColor"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="copy">© 2026 CitationSniper. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>
